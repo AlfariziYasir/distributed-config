@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrNotFound     = errors.New("resource not found")
+	ErrInActive     = errors.New("agent inactive")
 	ErrConflict     = errors.New("resource conflict")
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrInvalidInput = errors.New("invalid input")
@@ -16,7 +17,7 @@ var (
 
 func MapError(err error) (int, string) {
 	switch err {
-	case ErrNotFound:
+	case ErrNotFound, ErrInActive:
 		return http.StatusNotFound, err.Error()
 	case ErrInvalidInput:
 		return http.StatusBadRequest, err.Error()

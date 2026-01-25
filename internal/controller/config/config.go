@@ -13,7 +13,7 @@ type Config struct {
 	AgentSecret  string        `env:"AGENT_SECRET"`
 	DBDSN        string        `env:"DBDSN"`
 	RedisAddr    string        `env:"REDIS_ADDR"`
-	HTTPPort     string        `env:"HTTP_PORT"`
+	HTTPPort     int           `env:"HTTP_PORT"`
 	PollUrl      string        `env:"POLL_URL"`
 	PollInterval time.Duration `env:"POLL_INTERVAL"`
 }

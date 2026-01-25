@@ -1,11 +1,12 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"distributed-configuration/internal/controller/repository"
 	model "distributed-configuration/pkg/models"
 	"distributed-configuration/pkg/utils"
+	"encoding/json"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -31,18 +32,42 @@ func NewConfigService(log *utils.Logger, repo repository.ConfigRepository) Confi
 }
 
 func (s *configService) Save(ctx context.Context, req *model.Configuration) error {
-	var config model.Configuration
+	var (
+		config           model.Configuration
+		newData, oldData map[string]any
+	)
 
-	err := s.repo.GetLatest(ctx, &config)
+	count, err := s.repo.Count(ctx, &config)
+	if err != nil {
+		s.log.Error("failed get latest config", zap.Error(err))
+		return err
+	} else if count == 0 {
+		newConfig := model.Configuration{
+			Version:   1,
+			Data:      req.Data,
+			CreatedAt: time.Now(),
+		}
+		err = s.repo.Create(ctx, &newConfig)
+		if err != nil {
+			s.log.Error("failed create new config", zap.Error(err))
+			return err
+		}
+
+		return nil
+	}
+
+	s.log.Info("total data", zap.Int("count", int(count)))
+
+	err = s.repo.Get(ctx, &config)
 	if err != nil {
 		s.log.Error("failed get latest config", zap.Error(err))
 		return err
 	}
 
-	newData, _ := req.Data.MarshalJSON()
-	oldData, _ := config.Data.MarshalJSON()
+	json.Unmarshal(req.Data, &newData)
+	json.Unmarshal(config.Data, &oldData)
 
-	ok := bytes.Equal(newData, oldData)
+	ok := reflect.DeepEqual(newData, oldData)
 	if ok {
 		s.log.Info("data not modified")
 		return utils.ErrNotModified
@@ -65,7 +90,7 @@ func (s *configService) Save(ctx context.Context, req *model.Configuration) erro
 func (s *configService) Get(ctx context.Context, version string) (model.Configuration, error) {
 	var config model.Configuration
 
-	err := s.repo.GetLatest(ctx, &config)
+	err := s.repo.Get(ctx, &config)
 	if err != nil {
 		s.log.Error("failed get latest config", zap.Error(err))
 		return model.Configuration{}, err
