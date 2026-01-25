@@ -125,7 +125,7 @@ func (s *AgentService) polling(ctx context.Context) {
 				continue
 			}
 
-			s.state.UpdateConfig(res.ETag, s.state.Config)
+			s.state.UpdateConfig(res.ETag, res.Data)
 			s.repo.Save(s.state.Snapshot())
 
 			err = s.worker.PushConfig(ctx, s.state.Config)
