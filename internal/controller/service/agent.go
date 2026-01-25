@@ -59,11 +59,6 @@ func (s *agentService) Verify(ctx context.Context, agentID string) error {
 		return err
 	}
 
-	threshold := time.Duration(agent.PollIntervalSeconds*2) * time.Second
-	if time.Since(agent.LastSeen) > threshold {
-		return utils.ErrInActive
-	}
-
 	agent.LastSeen = time.Now()
 	err = s.repo.Update(ctx, &agent)
 	if err != nil {

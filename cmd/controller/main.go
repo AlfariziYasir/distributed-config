@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	_ "distributed-configuration/docs"
+	_ "distributed-configuration/docs/controller"
 	"distributed-configuration/internal/controller/config"
 	"distributed-configuration/internal/controller/handler"
 	"distributed-configuration/internal/controller/repository"
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	db, err := gorm.Open(sqlite.Open(cfg.DBDSN), &gorm.Config{
-		Logger: utils.NewZapGormLogger(log.Logger, logger.Info, time.Duration(10*time.Second)),
+		Logger: utils.NewZapGormLogger(log.Logger, logger.Error, time.Duration(10*time.Second)),
 	})
 	if err != nil {
 		log.Fatal(err.Error())

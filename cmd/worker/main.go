@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	_ "distributed-configuration/docs"
+	_ "distributed-configuration/docs/worker"
 	"distributed-configuration/internal/worker/config"
 	"distributed-configuration/internal/worker/handler"
 	"distributed-configuration/internal/worker/service"
@@ -48,7 +48,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle(
-		"/config",
+		"/agent-config",
 		handler.Authentication(
 			handler.RoleBase(utils.RoleAgent)(
 				http.HandlerFunc(handler.Save),

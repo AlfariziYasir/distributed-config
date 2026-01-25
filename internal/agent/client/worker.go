@@ -34,7 +34,7 @@ func NewWorkerClient(log *utils.Logger, cfg *config.Config) WorkerClient {
 }
 
 func (c *workerClient) PushConfig(ctx context.Context, config json.RawMessage) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.WorkerUrl+"/register", bytes.NewBuffer(config))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.WorkerUrl, bytes.NewBuffer(config))
 	if err != nil {
 		c.log.Error("failed create new request", zap.Error(err))
 		return err
@@ -44,7 +44,7 @@ func (c *workerClient) PushConfig(ctx context.Context, config json.RawMessage) e
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		c.log.Error("network error, failed to register", zap.Error(err))
+		c.log.Error("network error, failed to push config", zap.Error(err))
 		return err
 	}
 	defer resp.Body.Close()
@@ -52,7 +52,7 @@ func (c *workerClient) PushConfig(ctx context.Context, config json.RawMessage) e
 	if resp.StatusCode != http.StatusOK {
 		errBody, _ := io.ReadAll(resp.Body)
 		c.log.Error(string(errBody))
-		return fmt.Errorf("register failed (status %d): %s", resp.StatusCode, string(errBody))
+		return fmt.Errorf("push config failed (status %d): %s", resp.StatusCode, string(errBody))
 	}
 
 	return nil

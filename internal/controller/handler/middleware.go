@@ -12,11 +12,13 @@ func (h handler) Authentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
+		fmt.Println("token:", token)
+
 		switch token {
 		case h.cfg.AdminSecret:
 			ctx := context.WithValue(r.Context(), "role", utils.RoleAdmin)
 			next.ServeHTTP(w, r.WithContext(ctx))
-		case h.cfg.AgentSecret:
+		case h.cfg.ControllerSecret:
 			ctx := context.WithValue(r.Context(), "role", utils.RoleAgent)
 
 			fmt.Println("url path:", r.URL.Path)

@@ -10,7 +10,7 @@ import (
 type Config struct {
 	AgentSecret  string `env:"AGENT_SECRET"`
 	ClientSecret string `env:"CLIENT_SECRET"`
-	HTTPPort     int    `env:"HTTP_PORT"`
+	HTTPPort     int    `env:"WORKER_PORT"`
 }
 
 func NewConfig() (*Config, error) {

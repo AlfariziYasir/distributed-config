@@ -27,14 +27,14 @@ func NewHandler(log *utils.Logger, cfg *config.Config, worker service.WorkerServ
 // SaveConfig godoc
 // @Summary      Receive config
 // @Description  Receive config sent by an agent to store at internal storage
-// @Tags         config
+// @Tags         agent
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request  body      map[string]interface{}  true  "config data"
 // @Success      200      {object}  map[string]interface{}
 // @Failure      400      {object}  map[string]string "Invalid request body"
-// @Router       /register [post]
+// @Router       /config [post]
 func (h *handler) Save(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -60,7 +60,7 @@ func (h *handler) Save(w http.ResponseWriter, r *http.Request) {
 // GetConfig godoc
 // @Summary      Fetch config data
 // @Description  Fetch config data for client
-// @Tags         config
+// @Tags         client
 // @Produce      json
 // @Security     BearerAuth
 // @Success      200      		{object}  map[string]interface{}

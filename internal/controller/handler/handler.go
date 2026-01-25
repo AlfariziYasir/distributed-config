@@ -120,7 +120,7 @@ func (h handler) Register(w http.ResponseWriter, r *http.Request) {
 // GetConfig godoc
 // @Summary      Poll for latest configuration
 // @Description  Get the latest config if version has changed. Returns 304 if version matches.
-// @Tags         config
+// @Tags         agent
 // @Produce      json
 // @Security     BearerAuth
 // @Param        X-Agent-ID     header    string  true   "Unique Agent ID"
