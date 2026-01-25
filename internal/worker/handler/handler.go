@@ -50,6 +50,13 @@ func (h *handler) Save(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.worker.Save(r.Context(), payload)
+	if err != nil {
+		h.log.Error("failed to register new agent", zap.Error(err))
+		status, msg := utils.MapError(err)
+		http.Error(w, msg, status)
+		return
+	}
+
 	resp := map[string]any{
 		"status":  "success",
 		"message": "configuration saved successfully",
