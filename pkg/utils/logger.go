@@ -6,7 +6,7 @@ import (
 )
 
 type Logger struct {
-	logger *zap.Logger
+	Logger *zap.Logger
 }
 
 // New -.
@@ -30,7 +30,7 @@ func New(level zapcore.Level, service string, appVersion string, isProd bool) (L
 	}
 
 	return Logger{
-		logger: l,
+		Logger: l,
 	}, nil
 
 }
@@ -58,32 +58,32 @@ func createDevLog(level zapcore.Level) (*zap.Logger, error) {
 }
 
 func (l *Logger) Info(msg string, fields ...zap.Field) {
-	l.logger.Info(msg, fields...)
+	l.Logger.Info(msg, fields...)
 }
 
 func (l *Logger) Error(msg string, fields ...zap.Field) {
-	l.logger.Error(msg, fields...)
+	l.Logger.Error(msg, fields...)
 }
 
 func (l *Logger) Debug(msg string, fields ...zap.Field) {
-	l.logger.Debug(msg, fields...)
+	l.Logger.Debug(msg, fields...)
 }
 
 func (l *Logger) Warn(msg string, fields ...zap.Field) {
-	l.logger.Warn(msg, fields...)
+	l.Logger.Warn(msg, fields...)
 }
 
 func (l *Logger) Fatal(msg string, fields ...zap.Field) {
-	l.logger.Fatal(msg, fields...)
+	l.Logger.Fatal(msg, fields...)
 }
 
 func (l *Logger) Sync() error {
-	if l.logger != nil {
-		return l.logger.Sync()
+	if l.Logger != nil {
+		return l.Logger.Sync()
 	}
 	return nil
 }
 
 func (l *Logger) GetZapLogger() *zap.Logger {
-	return l.logger
+	return l.Logger
 }
