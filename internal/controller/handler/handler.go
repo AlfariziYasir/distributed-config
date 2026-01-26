@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -17,6 +18,7 @@ type handler struct {
 	agent  service.AgentService
 	cfg    *config.Config
 	log    *utils.Logger
+	notif  *service.RedisNotifier
 }
 
 func NewHandler(
@@ -24,12 +26,14 @@ func NewHandler(
 	agent service.AgentService,
 	log *utils.Logger,
 	cfg *config.Config,
+	notif *service.RedisNotifier,
 ) *handler {
 	return &handler{
 		config: config,
 		agent:  agent,
 		log:    log,
 		cfg:    cfg,
+		notif:  notif,
 	}
 }
 
@@ -68,6 +72,13 @@ func (h handler) Save(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, msg, status)
 		return
 	}
+
+	go func() {
+		err = h.notif.PublishUpdate(r.Context())
+		if err != nil {
+			h.log.Error("failed to publish update", zap.Error(err))
+		}
+	}()
 
 	resp := map[string]any{
 		"status":  "success",
@@ -135,22 +146,46 @@ func (h handler) Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
 	versionx := r.Header.Get("If-None-Match")
 
-	res, err := h.config.Get(r.Context(), versionx)
-	if err != nil {
-		status, msg := utils.MapError(err)
-		if status == http.StatusNotModified {
-			w.WriteHeader(http.StatusNotModified)
-			return
+	sendLatestConfig := func() bool {
+		res, err := h.config.Get(ctx, versionx)
+		if err != nil {
+			status, msg := utils.MapError(err)
+			if status != http.StatusNotModified {
+				h.log.Error("failed to get config", zap.Error(err))
+				http.Error(w, msg, status)
+				return true
+			}
+			return false
 		}
-		h.log.Error("failed to get config", zap.Error(err))
-		http.Error(w, msg, status)
+
+		if fmt.Sprintf("v%d", res.Version) != versionx {
+			resp := map[string]any{}
+			json.Unmarshal(res.Data, &resp)
+			w.Header().Set("ETag", fmt.Sprintf("v%d", res.Version))
+			utils.WriteJSON(w, http.StatusOK, resp)
+			return true
+		}
+
+		return false
+	}
+
+	if sent := sendLatestConfig(); sent {
 		return
 	}
 
-	resp := map[string]any{}
-	json.Unmarshal(res.Data, &resp)
-	w.Header().Set("ETag", fmt.Sprintf("v%d", res.Version))
-	utils.WriteJSON(w, http.StatusOK, resp)
+	updateCh := h.notif.Subscribe()
+
+	select {
+	case <-time.After(60 * time.Second):
+		w.WriteHeader(http.StatusNotModified)
+		return
+	case <-updateCh:
+		sendLatestConfig()
+		return
+	case <-ctx.Done():
+		return
+	}
 }

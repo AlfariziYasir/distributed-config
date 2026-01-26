@@ -5,6 +5,8 @@ import (
 	model "distributed-configuration/pkg/models"
 	"distributed-configuration/pkg/utils"
 	"encoding/json"
+
+	"go.uber.org/zap"
 )
 
 type WorkerService interface {
@@ -36,6 +38,8 @@ func (s *workerService) Save(ctx context.Context, config json.RawMessage) error 
 	}
 
 	s.data.UpdateData(config)
+	s.log.Info("configuration successfully updated", zap.String("data", string(config)))
+
 	return nil
 }
 func (s *workerService) Get(ctx context.Context) (map[string]any, error) {
@@ -47,6 +51,7 @@ func (s *workerService) Get(ctx context.Context) (map[string]any, error) {
 
 	res := map[string]any{}
 	json.Unmarshal(config, &res)
+	s.log.Info("get config successfully", zap.Any("data", res))
 
 	return res, nil
 }

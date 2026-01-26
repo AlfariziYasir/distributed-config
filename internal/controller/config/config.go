@@ -16,6 +16,7 @@ type Config struct {
 	HTTPPort         int           `env:"CONTROLLER_PORT"`
 	PollUrl          string        `env:"POLL_URL"`
 	PollInterval     time.Duration `env:"POLL_INTERVAL"`
+	ChannelKey       string        `env:"CHANNEL_KEY"`
 }
 
 func NewConfig() (*Config, error) {

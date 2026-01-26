@@ -69,7 +69,7 @@ func (s *AgentService) register(ctx context.Context) {
 
 		hostname, err := os.Hostname()
 		if err != nil {
-			hostname = "unknows"
+			hostname = "unknown"
 		}
 
 		res, err := s.controller.Register(ctx, s.cfg.AgentName, hostname)
@@ -96,38 +96,44 @@ func (s *AgentService) register(ctx context.Context) {
 }
 
 func (s *AgentService) polling(ctx context.Context) {
-	interval := time.Duration(s.state.GetInterval()) * time.Second
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
 	backoff := 1 * time.Second
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		default:
 			agenID, etag, pollUrl := s.state.Get()
 			res, err := s.controller.FetchConfig(ctx, agenID, etag, pollUrl)
 			if err != nil {
 				s.log.Error("poll failed", zap.Error(err), zap.Int("backoff", int(backoff)))
-				time.Sleep(backoff)
-				if backoff < 1*time.Minute {
-					backoff *= 2
-				} else {
-					backoff = 1 * time.Minute
+				select {
+				case <-time.After(backoff):
+					if backoff < 1*time.Minute {
+						backoff *= 2
+					}
+					continue
+				case <-ctx.Done():
+					return
 				}
-				continue
 			}
 
+			backoff = 1 * time.Second
+
 			if res.Data == nil {
-				s.log.Info("data not modified")
-				continue
+				s.log.Warn("data not modified")
+				select {
+				case <-time.After(1 * time.Second):
+					continue
+				case <-ctx.Done():
+					return
+				}
 			}
+
+			s.log.Info("received new config update", zap.String("etag", res.ETag))
 
 			s.state.UpdateConfig(res.ETag, res.Data)
 			s.repo.Save(s.state.Snapshot())
-
 			err = s.worker.PushConfig(ctx, s.state.Config)
 			if err != nil {
 				s.log.Error("failed push update to worker", zap.Error(err))

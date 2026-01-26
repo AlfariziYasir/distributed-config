@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -62,13 +63,16 @@ func main() {
 		return
 	}
 
+	rds := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr, Password: "64mUrO4eXR3D"})
+
 	agentRepo := repository.NewAgentRepository(db, &log)
 	configRepo := repository.NewConfigRepository(db, &log)
 
 	agentSvc := service.NewAgentService(&log, agentRepo, cfg)
 	configSvc := service.NewConfigService(&log, configRepo)
+	notif := service.NewRedisNotifier(rds, cfg.ChannelKey, &log)
 
-	handler := handler.NewHandler(configSvc, agentSvc, &log, cfg)
+	handler := handler.NewHandler(configSvc, agentSvc, &log, cfg, notif)
 
 	mux := http.NewServeMux()
 
