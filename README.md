@@ -59,12 +59,12 @@ go run cmd/worker/main.go
 
 ### Build and Start Controlller Services
 ```bash
-docker-compose up --build
+docker compose -f deployments/controller/docker-compose.yml up --build
 ```
 
 ### Build and Start Agent & Worker Services
 ```bash
-docker-compose up --build
+docker compose -f deployments/client/docker-compose.yml up --build
 ```
 
 ### Stop Services
