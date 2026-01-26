@@ -23,7 +23,7 @@ func main() {
 		return
 	}
 
-	repo := repository.NewFileStore(&log)
+	repo := repository.NewFileStore(&log, cfg.FilePath)
 	controller := client.NewControllerClient(&log, cfg)
 	worker := client.NewWorkerClient(&log, cfg)
 

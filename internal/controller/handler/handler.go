@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"distributed-configuration/internal/controller/config"
 	"distributed-configuration/internal/controller/service"
 	model "distributed-configuration/pkg/models"
@@ -73,12 +74,10 @@ func (h handler) Save(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go func() {
-		err = h.notif.PublishUpdate(r.Context())
-		if err != nil {
-			h.log.Error("failed to publish update", zap.Error(err))
-		}
-	}()
+	err = h.notif.PublishUpdate(context.Background())
+	if err != nil {
+		h.log.Error("failed to publish update", zap.Error(err))
+	}
 
 	resp := map[string]any{
 		"status":  "success",
