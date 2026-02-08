@@ -1,0 +1,14 @@
+FROM golang:1.24.3-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o agent cmd/agent/main.go
+
+FROM alpine:latest
+WORKDIR /app
+RUN apk --no-cache add ca-certificates tzdata
+RUN mkdir -p /app/data
+COPY --from=builder /app/agent .
+RUN chmod -R 777 /app/data
+CMD ["./agent"]

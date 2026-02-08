@@ -12,26 +12,11 @@ func (h handler) Authentication(next http.Handler) http.Handler {
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 		switch token {
-		case h.cfg.AdminSecret:
-			ctx := context.WithValue(r.Context(), "role", utils.RoleAdmin)
+		case h.cfg.ClientSecret:
+			ctx := context.WithValue(r.Context(), "role", utils.RoleClient)
 			next.ServeHTTP(w, r.WithContext(ctx))
-		case h.cfg.ControllerSecret:
+		case h.cfg.WorkerSecret:
 			ctx := context.WithValue(r.Context(), "role", utils.RoleAgent)
-
-			if r.URL.Path == "/config" {
-				agentID := r.Header.Get("X-Agent-ID")
-				if agentID == "" {
-					http.Error(w, "missing agent id", http.StatusUnauthorized)
-					return
-				}
-
-				err := h.agent.Verify(ctx, agentID)
-				if err != nil {
-					status, msg := utils.MapError(err)
-					http.Error(w, msg, status)
-					return
-				}
-			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		default:
 			http.Error(w, "unauthorized", http.StatusUnauthorized)

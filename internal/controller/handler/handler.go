@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"distributed-configuration/internal/controller/config"
 	"distributed-configuration/internal/controller/service"
 	model "distributed-configuration/pkg/models"
@@ -8,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -17,6 +19,7 @@ type handler struct {
 	agent  service.AgentService
 	cfg    *config.Config
 	log    *utils.Logger
+	notif  *service.RedisNotifier
 }
 
 func NewHandler(
@@ -24,12 +27,14 @@ func NewHandler(
 	agent service.AgentService,
 	log *utils.Logger,
 	cfg *config.Config,
+	notif *service.RedisNotifier,
 ) *handler {
 	return &handler{
 		config: config,
 		agent:  agent,
 		log:    log,
 		cfg:    cfg,
+		notif:  notif,
 	}
 }
 
@@ -67,6 +72,11 @@ func (h handler) Save(w http.ResponseWriter, r *http.Request) {
 		h.log.Error("failed to get config", zap.Error(err))
 		http.Error(w, msg, status)
 		return
+	}
+
+	err = h.notif.PublishUpdate(context.Background())
+	if err != nil {
+		h.log.Error("failed to publish update", zap.Error(err))
 	}
 
 	resp := map[string]any{
@@ -120,7 +130,7 @@ func (h handler) Register(w http.ResponseWriter, r *http.Request) {
 // GetConfig godoc
 // @Summary      Poll for latest configuration
 // @Description  Get the latest config if version has changed. Returns 304 if version matches.
-// @Tags         config
+// @Tags         agent
 // @Produce      json
 // @Security     BearerAuth
 // @Param        X-Agent-ID     header    string  true   "Unique Agent ID"
@@ -135,22 +145,46 @@ func (h handler) Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := r.Context()
 	versionx := r.Header.Get("If-None-Match")
 
-	res, err := h.config.Get(r.Context(), versionx)
-	if err != nil {
-		status, msg := utils.MapError(err)
-		if status == http.StatusNotModified {
-			w.WriteHeader(http.StatusNotModified)
-			return
+	sendLatestConfig := func() bool {
+		res, err := h.config.Get(ctx, versionx)
+		if err != nil {
+			status, msg := utils.MapError(err)
+			if status != http.StatusNotModified {
+				h.log.Error("failed to get config", zap.Error(err))
+				http.Error(w, msg, status)
+				return true
+			}
+			return false
 		}
-		h.log.Error("failed to get config", zap.Error(err))
-		http.Error(w, msg, status)
+
+		if fmt.Sprintf("v%d", res.Version) != versionx {
+			resp := map[string]any{}
+			json.Unmarshal(res.Data, &resp)
+			w.Header().Set("ETag", fmt.Sprintf("v%d", res.Version))
+			utils.WriteJSON(w, http.StatusOK, resp)
+			return true
+		}
+
+		return false
+	}
+
+	if sent := sendLatestConfig(); sent {
 		return
 	}
 
-	resp := map[string]any{}
-	json.Unmarshal(res.Data, &resp)
-	w.Header().Set("ETag", fmt.Sprintf("v%d", res.Version))
-	utils.WriteJSON(w, http.StatusOK, resp)
+	updateCh := h.notif.Subscribe()
+
+	select {
+	case <-time.After(60 * time.Second):
+		w.WriteHeader(http.StatusNotModified)
+		return
+	case <-updateCh:
+		sendLatestConfig()
+		return
+	case <-ctx.Done():
+		return
+	}
 }

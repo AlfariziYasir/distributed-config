@@ -81,7 +81,60 @@ paths:
       - BearerAuth: []
       summary: Poll for latest configuration
       tags:
-      - config
+      - agent
+    post:
+      consumes:
+      - application/json
+      description: Receive config sent by an agent to store at internal storage
+      parameters:
+      - description: config data
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Receive config
+      tags:
+      - agent
+  /hit:
+    get:
+      description: Fetch config data for client
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Fetch config data
+      tags:
+      - client
   /register:
     post:
       consumes:

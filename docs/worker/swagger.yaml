@@ -1,0 +1,175 @@
+basePath: /
+definitions:
+  distributed-configuration_pkg_models.AgentRequest:
+    properties:
+      host:
+        type: string
+      name:
+        type: string
+    type: object
+  distributed-configuration_pkg_models.Configuration:
+    properties:
+      data:
+        type: object
+    type: object
+host: localhost:8181
+info:
+  contact: {}
+  description: API for managing distributed configurations.
+  title: Distributed Config System API
+  version: "1.0"
+paths:
+  /admin/config:
+    post:
+      consumes:
+      - application/json
+      description: Admin endpoint to update the configuration that will be pushed
+        to all agents
+      parameters:
+      - description: New Configuration
+        in: body
+        name: config
+        required: true
+        schema:
+          $ref: '#/definitions/distributed-configuration_pkg_models.Configuration'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: config updated'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update global configuration
+      tags:
+      - admin
+  /config:
+    get:
+      description: Get the latest config if version has changed. Returns 304 if version
+        matches.
+      parameters:
+      - description: Unique Agent ID
+        in: header
+        name: X-Agent-ID
+        required: true
+        type: string
+      - description: Current config version (ETag)
+        in: header
+        name: If-None-Match
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "304":
+          description: Not Modified
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Poll for latest configuration
+      tags:
+      - agent
+    post:
+      consumes:
+      - application/json
+      description: Receive config sent by an agent to store at internal storage
+      parameters:
+      - description: config data
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Receive config
+      tags:
+      - agent
+  /hit:
+    get:
+      description: Fetch config data for client
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Fetch config data
+      tags:
+      - client
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register an agent to get a unique ID and polling configuration
+      parameters:
+      - description: Agent Registration Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/distributed-configuration_pkg_models.AgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Register a new agent
+      tags:
+      - agent
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and your token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

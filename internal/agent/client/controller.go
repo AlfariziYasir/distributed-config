@@ -50,8 +50,10 @@ func (c *controllerClient) Register(ctx context.Context, agentName, hostname str
 		c.log.Error("failed create new request", zap.Error(err))
 		return model.AgentResponse{}, err
 	}
-	req.Header.Set("Content-Type", "application/json")
 
+	req.Header.Set("Authorization", "Bearer "+c.cfg.ControllerSecret)
+	req.Header.Set("Content-Type", "application/json")
+	c.log.Info("header request", zap.Any("value", req.Header))
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.log.Error("network error, failed to register", zap.Error(err))
@@ -73,6 +75,7 @@ func (c *controllerClient) Register(ctx context.Context, agentName, hostname str
 
 	return res, nil
 }
+
 func (c *controllerClient) FetchConfig(ctx context.Context, agentID, etag, pollUrl string) (model.ConfigResponse, error) {
 	var res model.ConfigResponse
 
@@ -89,6 +92,7 @@ func (c *controllerClient) FetchConfig(ctx context.Context, agentID, etag, pollU
 		req.Header.Set("If-None-Match", etag)
 	}
 
+	c.log.Info("header request", zap.Any("value", req.Header))
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.log.Error("network error, failed to get config", zap.Error(err))
@@ -97,14 +101,14 @@ func (c *controllerClient) FetchConfig(ctx context.Context, agentID, etag, pollU
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotModified {
-		c.log.Info("data not modified", zap.Int("code", resp.StatusCode))
+		c.log.Warn("data not modified", zap.Int("code", resp.StatusCode))
 		return model.ConfigResponse{}, nil
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		errBody, _ := io.ReadAll(resp.Body)
 		c.log.Error(string(errBody))
-		return model.ConfigResponse{}, fmt.Errorf("register failed (status %d): %s", resp.StatusCode, string(errBody))
+		return model.ConfigResponse{}, fmt.Errorf("poll failed (status %d): %s", resp.StatusCode, string(errBody))
 	}
 
 	res.ETag = resp.Header.Get("ETag")

@@ -12,9 +12,9 @@ type Config struct {
 	AgentName        string        `env:"AGENT_NAME"`
 	ControllerSecret string        `env:"CONTROLLER_SECRET"`
 	WorkerSecret     string        `env:"WORKER_SECRET"`
-	RedisAddr        string        `env:"REDIS_ADDR"`
 	ControllerUrl    string        `env:"CONTROLLER_URL"`
 	WorkerUrl        string        `env:"WORKER_URL"`
+	FilePath         string        `env:"FILE_PATH"`
 	Timeout          time.Duration `env:"TIMEOUT"`
 }
 

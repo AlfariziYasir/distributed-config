@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	_ "distributed-configuration/docs"
+	_ "distributed-configuration/docs/controller"
 	"distributed-configuration/internal/controller/config"
 	"distributed-configuration/internal/controller/handler"
 	"distributed-configuration/internal/controller/repository"
@@ -13,9 +13,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -48,8 +50,19 @@ func main() {
 		return
 	}
 
-	db, err := gorm.Open(sqlite.Open(cfg.DBDSN), &gorm.Config{
-		Logger: utils.NewZapGormLogger(log.Logger, logger.Info, time.Duration(10*time.Second)),
+	dbPath := cfg.DBDSN
+	if dbPath == "" {
+		dbPath = "./data/controller/controller.db"
+	}
+
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		log.Fatal("Could not create db directory", zap.Error(err))
+		return
+	}
+
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: utils.NewZapGormLogger(log.Logger, logger.Error, time.Duration(10*time.Second)),
 	})
 	if err != nil {
 		log.Fatal(err.Error())
@@ -62,13 +75,16 @@ func main() {
 		return
 	}
 
+	rds := redis.NewClient(&redis.Options{Addr: cfg.RedisAddr, Password: cfg.RedisPass})
+
 	agentRepo := repository.NewAgentRepository(db, &log)
 	configRepo := repository.NewConfigRepository(db, &log)
 
 	agentSvc := service.NewAgentService(&log, agentRepo, cfg)
 	configSvc := service.NewConfigService(&log, configRepo)
+	notif := service.NewRedisNotifier(rds, cfg.ChannelKey, &log)
 
-	handler := handler.NewHandler(configSvc, agentSvc, &log, cfg)
+	handler := handler.NewHandler(configSvc, agentSvc, &log, cfg, notif)
 
 	mux := http.NewServeMux()
 
