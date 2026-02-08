@@ -1,0 +1,4 @@
+/deployments/client/agent_data/
+/deployments/controller/controller_data/
+/data/controller/*
+/data/agent/*

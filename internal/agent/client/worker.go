@@ -42,6 +42,7 @@ func (c *workerClient) PushConfig(ctx context.Context, config json.RawMessage) e
 
 	req.Header.Set("Authorization", "Bearer "+c.cfg.WorkerSecret)
 	req.Header.Set("Content-Type", "application/json")
+	c.log.Info("header request", zap.Any("value", req.Header))
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.log.Error("network error, failed to push config", zap.Error(err))

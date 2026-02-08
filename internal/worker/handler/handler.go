@@ -34,7 +34,7 @@ func NewHandler(log *utils.Logger, cfg *config.Config, worker service.WorkerServ
 // @Param        request  body      map[string]interface{}  true  "config data"
 // @Success      200      {object}  map[string]interface{}
 // @Failure      400      {object}  map[string]string "Invalid request body"
-// @Router       /config [post]
+// @Router       /agent-config [post]
 func (h *handler) Save(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -50,6 +50,13 @@ func (h *handler) Save(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.worker.Save(r.Context(), payload)
+	if err != nil {
+		h.log.Error("failed to register new agent", zap.Error(err))
+		status, msg := utils.MapError(err)
+		http.Error(w, msg, status)
+		return
+	}
+
 	resp := map[string]any{
 		"status":  "success",
 		"message": "configuration saved successfully",

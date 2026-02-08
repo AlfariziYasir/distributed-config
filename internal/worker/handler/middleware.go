@@ -15,7 +15,7 @@ func (h handler) Authentication(next http.Handler) http.Handler {
 		case h.cfg.ClientSecret:
 			ctx := context.WithValue(r.Context(), "role", utils.RoleClient)
 			next.ServeHTTP(w, r.WithContext(ctx))
-		case h.cfg.AgentSecret:
+		case h.cfg.WorkerSecret:
 			ctx := context.WithValue(r.Context(), "role", utils.RoleAgent)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		default:

@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  worker:
+    build:
+      context: ../../
+      dockerfile: deployments/client/Dockerfile.worker
+    container_name: worker-svc
+    ports:
+      - '8181:8181'
+    environment:
+      - WORKER_SECRET=worker-secret
+      - CLIENT_SECRET=client-secret
+      - WORKER_PORT=8181
+    networks:
+      - default
+    restart: always
+  agent:
+    build:
+      context: ../../
+      dockerfile: deployments/client/Dockerfile.agent
+    container_name: agent-svc
+    environment:
+      - AGENT_NAME=Agent-Service
+      - CONTROLLER_SECRET=controller-secret
+      - WORKER_SECRET=worker-secret
+      - CONTROLLER_URL=http://controller-svc:8080
+      - WORKER_URL=http://worker-svc:8181/agent-config
+      - TIMEOUT=90s
+      - FILE_PATH=/app/data/config.json
+    volumes:
+      - ./agent_data:/app/data
+    depends_on:
+      - worker
+    networks:
+      - config_mesh
+      - default
+    restart: always
+
+networks:
+  config_mesh:
+    name: config_mesh
+    external: true

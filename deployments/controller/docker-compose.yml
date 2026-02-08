@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:alpine
+    command: redis-server --requirepass redis123
+    ports:
+     - '6379:6379'
+    networks:
+     - default
+  controller:
+    build:
+      context: ../../
+      dockerfile: deployments/controller/Dockerfile
+    container_name: controller-svc
+    ports:
+      - '8080:8080'
+    environment:
+      - ADMIN_SECRET=admin-secret
+      - CONTROLLER_SECRET=controller-secret
+      - DBDSN=/app/data/controller.db
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=redis123
+      - CONTROLLER_PORT=8080
+      - POLL_URL=/config
+      - POLL_INTERVAL=10s
+      - CHANNEL_KEY=config-update
+    volumes:
+      - ./controller_data:/app/data
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - config_mesh
+      - default
+
+networks:
+  config_mesh:
+    name: config_mesh
+    driver: bridge

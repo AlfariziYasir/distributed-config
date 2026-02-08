@@ -99,7 +99,7 @@ func (s *configService) Get(ctx context.Context, version string) (model.Configur
 	versionStr := regexp.MustCompile(`\d+`).FindString(version)
 	versionInt, _ := strconv.Atoi(versionStr)
 	if versionInt == config.Version {
-		s.log.Info("data not modified")
+		s.log.Warn("data not modified")
 		return model.Configuration{}, utils.ErrNotModified
 	}
 

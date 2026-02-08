@@ -101,7 +101,7 @@ func (c *controllerClient) FetchConfig(ctx context.Context, agentID, etag, pollU
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotModified {
-		c.log.Info("data not modified", zap.Int("code", resp.StatusCode))
+		c.log.Warn("data not modified", zap.Int("code", resp.StatusCode))
 		return model.ConfigResponse{}, nil
 	}
 
